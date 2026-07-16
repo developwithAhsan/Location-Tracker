@@ -36,8 +36,13 @@
 </head>
 
 <body>
-    <h4 style="display: flex; justify-content: space-between; align-items: center; padding: .5rem 1rem;">
-        <span>ID: <span id="display-id"></span></span>
+    <h4 style="display: flex; justify-content: space-between; align-items: center; padding: .5rem 1rem; background: #0d1117; border-bottom: 1px solid #30363d;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <a href="/" style="background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 4px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; transition: background 0.2s, color 0.2s;" onmouseover="this.style.background='#30363d'; this.style.color='#ffffff';" onmouseout="this.style.background='#21262d'; this.style.color='#c9d1d9';">
+                &larr; Back to Dashboard
+            </a>
+            <span style="font-size: 14px; color: #8b949e;">ID: <strong id="display-id" style="color: #58a6ff;"></strong></span>
+        </div>
         <span style="font-size: 14px;"><a href="https://github.com/developwithAhsan" target="_blank" rel="noopener noreferrer" style="color: #4facfe; text-decoration: none;">Created by Ahsan</a></span>
     </h4>
     <div id="map"></div>
