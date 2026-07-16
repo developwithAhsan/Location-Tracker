@@ -369,6 +369,10 @@
                                     </div>
                                 </div>
                                 <div class="is-flex" style="gap: 8px;">
+                                    <button onclick="saveLocationData('{{ key }}')" class="button is-small is-warning is-outlined">
+                                        <span class="icon is-small"><i class="far fa-bookmark"></i></span>
+                                        <span>Save Snapshot</span>
+                                    </button>
                                     <button onclick="locateInstantly('{{ key }}')" class="button is-small is-success is-outlined">
                                         <span class="icon is-small"><i class="fas fa-crosshairs"></i></span>
                                         <span>Locate Instantly</span>
@@ -390,6 +394,49 @@
                             <p class="has-text-white has-text-weight-semibold">Listening for Live Signals...</p>
                             <p class="has-text-grey is-size-7 mt-1 px-5">
                                 No devices are actively connected yet. Open the tracker link above on your phone or in another browser tab to test!
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Saved Location Records Journal / Ledger -->
+                    <div class="premium-card p-5 mt-5 scroll-reveal reveal-scale">
+                        <div class="is-flex is-justify-content-between is-align-items-center mb-5" style="flex-wrap: wrap; gap: 15px;">
+                            <div>
+                                <h2 class="title is-4 has-text-white mb-1">
+                                    <span class="icon mr-1 has-text-warning"><i class="fas fa-bookmark"></i></span>
+                                    <span>Saved Location Ledger</span>
+                                </h2>
+                                <p class="subtitle is-6 has-text-grey">Persistent archive of logged target coordinates and weather states</p>
+                            </div>
+                            <div class="buttons mb-0">
+                                <button onclick="exportSavedCSV()" class="button is-small is-dark" id="btn-export-csv" style="background-color: #21262d; border-color: #30363d; color: #c9d1d9;">
+                                    <span class="icon is-small"><i class="fas fa-file-csv"></i></span>
+                                    <span>CSV Export</span>
+                                </button>
+                                <button onclick="exportSavedJSON()" class="button is-small is-dark" id="btn-export-json" style="background-color: #21262d; border-color: #30363d; color: #c9d1d9;">
+                                    <span class="icon is-small"><i class="fas fa-file-code"></i></span>
+                                    <span>JSON Export</span>
+                                </button>
+                                <button onclick="clearSavedLocations()" class="button is-small is-danger is-outlined">
+                                    <span class="icon is-small"><i class="fas fa-trash-alt"></i></span>
+                                    <span>Clear All</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Saved List Container -->
+                        <div id="saved-locations-list" class="is-flex is-flex-direction-column">
+                            <!-- Populated dynamically via JS from localStorage -->
+                        </div>
+
+                        <!-- Saved Empty State -->
+                        <div id="saved-empty-state" class="has-text-centered py-5">
+                            <span class="icon is-medium has-text-grey mb-2">
+                                <i class="far fa-folder-open fa-2x"></i>
+                            </span>
+                            <p class="has-text-grey-light">No saved telemetry positions in archive</p>
+                            <p class="has-text-grey is-size-7 mt-1">
+                                Click "Save Snapshot" next to any target session or "Save Position" in the Instant Finder to log telemetry positions.
                             </p>
                         </div>
                     </div>
@@ -542,6 +589,10 @@
                     <i class="fas fa-sync fa-spin mr-1 has-text-info"></i> WebSocket telemetry channel active
                 </p>
                 <div style="display: flex; gap: 8px;">
+                    <button class="button is-small is-warning is-outlined" id="finder-save-btn" style="border-color: rgba(255, 188, 64, 0.4); color: #ffbc40;">
+                        <span class="icon is-small"><i class="fas fa-bookmark"></i></span>
+                        <span>Save Position</span>
+                    </button>
                     <button class="button is-small is-dark" id="finder-recenter-btn" style="border-color: #30363d; color: #c9d1d9; background-color: #21262d;">
                         <span class="icon is-small"><i class="fas fa-crosshairs"></i></span>
                         <span>Recenter</span>
@@ -641,6 +692,10 @@
                     </div>
                 </div>
                 <div class="is-flex" style="gap: 8px;">
+                    <button onclick="saveLocationData('${newId}')" class="button is-small is-warning is-outlined">
+                        <span class="icon is-small"><i class="far fa-bookmark"></i></span>
+                        <span>Save Snapshot</span>
+                    </button>
                     <button onclick="locateInstantly('${newId}')" class="button is-small is-success is-outlined">
                         <span class="icon is-small"><i class="fas fa-crosshairs"></i></span>
                         <span>Locate Instantly</span>
@@ -738,6 +793,9 @@
             }
         }
 
+        // Cache to store geocoded details of targets so saving is instant
+        const targetExtraCache = {};
+
         // Retrieve Reverse Geocoding Address and real current weather from open APIs
         async function fetchExtraInfo(lat, lng) {
             try {
@@ -749,7 +807,14 @@
                             const addr = data.address;
                             const city = addr.city || addr.town || addr.village || addr.suburb || "Unknown Location";
                             const country = addr.country || "";
-                            finderAddrText.innerText = `${city}${country ? ', ' + country : ''}`;
+                            const addrStr = `${city}${country ? ', ' + country : ''}`;
+                            finderAddrText.innerText = addrStr;
+
+                            // Cache address string
+                            if (activeTrackId) {
+                                if (!targetExtraCache[activeTrackId]) targetExtraCache[activeTrackId] = {};
+                                targetExtraCache[activeTrackId].address = addrStr;
+                            }
                         } else {
                             finderAddrText.innerText = "Remote Position";
                         }
@@ -776,12 +841,340 @@
 
                             const weatherLabel = `${temp}°C - ${cond}`;
                             finderAddrText.innerHTML += `<br><span style="color: #ffbc40; font-weight: 500;"><i class="fas fa-cloud-sun mr-1"></i> ${weatherLabel}</span>`;
+
+                            // Cache weather string
+                            if (activeTrackId) {
+                                if (!targetExtraCache[activeTrackId]) targetExtraCache[activeTrackId] = {};
+                                targetExtraCache[activeTrackId].weather = weatherLabel;
+                            }
                         }
                     })
                     .catch(err => console.log("Meteo error", err));
             } catch (e) {
                 console.error("Geocoding details fetch failure", e);
             }
+        }
+
+        // Storage utilities for Saved Locations
+        function getSavedListFromStorage() {
+            try {
+                const list = localStorage.getItem("saved_telemetry_locations");
+                return list ? JSON.parse(list) : [];
+            } catch (e) {
+                console.error("Localstorage read failure", e);
+                return [];
+            }
+        }
+
+        function saveListToStorage(list) {
+            try {
+                localStorage.setItem("saved_telemetry_locations", JSON.stringify(list));
+            } catch (e) {
+                console.error("Localstorage write failure", e);
+            }
+        }
+
+        // Global Toast Notification Utility
+        function showToast(message, type = "info") {
+            const container = document.getElementById("toast-container");
+            if (!container) return;
+
+            const toast = document.createElement("div");
+            toast.className = `notification is-${type} p-3 mb-0`;
+            toast.style.pointerEvents = "auto";
+            toast.style.boxShadow = "0 4px 15px rgba(0,0,0,0.5)";
+            toast.style.border = "1px solid rgba(255,255,255,0.1)";
+            toast.style.borderRadius = "8px";
+            toast.style.fontSize = "0.85rem";
+            toast.style.opacity = "0";
+            toast.style.transform = "translateY(20px)";
+            toast.style.transition = "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)";
+            
+            let icon = "info-circle";
+            if (type === "success") icon = "check-circle";
+            if (type === "danger") icon = "exclamation-triangle";
+            if (type === "warning") icon = "exclamation-circle";
+
+            toast.innerHTML = `
+                <div class="is-flex is-align-items-center">
+                    <span class="icon mr-2"><i class="fas fa-${icon}"></i></span>
+                    <span style="flex-grow: 1; font-weight: 500;">${message}</span>
+                    <button class="delete ml-2" onclick="this.parentElement.parentElement.remove()"></button>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            // Animate in
+            setTimeout(() => {
+                toast.style.opacity = "1";
+                toast.style.transform = "translateY(0)";
+            }, 50);
+
+            // Auto dismiss after 4 seconds
+            setTimeout(() => {
+                toast.style.opacity = "0";
+                toast.style.transform = "translateY(-10px)";
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // Save active target coordinates
+        async function saveLocationData(id) {
+            const coords = localTargets[id];
+            if (!coords || (coords[0] === 0 && coords[1] === 0)) {
+                showToast(`Unable to save: Target "${id}" has not broadcasted valid GPS coordinates yet.`, "danger");
+                return;
+            }
+
+            const lat = coords[0];
+            const lng = coords[1];
+            const timestamp = new Date().toLocaleString();
+            const recordId = 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
+            // Check if we have cached details
+            const cached = targetExtraCache[id] || {};
+            const initialAddress = cached.address || "Resolving position...";
+            const initialWeather = cached.weather || "";
+
+            const newRecord = {
+                id: recordId,
+                targetId: id,
+                lat: lat,
+                lng: lng,
+                timestamp: timestamp,
+                address: initialAddress,
+                weather: initialWeather
+            };
+
+            showToast(`Saving location snapshot for ${id}...`, "info");
+
+            const savedList = getSavedListFromStorage();
+            savedList.unshift(newRecord);
+            saveListToStorage(savedList);
+            renderSavedLocations();
+
+            // If not cached, let's fetch geocoding & weather in background
+            if (!cached.address || !cached.weather) {
+                try {
+                    let addressStr = cached.address || "Saved Position";
+                    let weatherStr = cached.weather || "";
+
+                    if (!cached.address) {
+                        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+                        const geoData = await geoRes.json();
+                        if (geoData && geoData.display_name) {
+                            const addr = geoData.address;
+                            const city = addr.city || addr.town || addr.village || addr.suburb || "Unknown Location";
+                            const country = addr.country || "";
+                            addressStr = `${city}${country ? ', ' + country : ''}`;
+                        }
+                    }
+
+                    if (!cached.weather) {
+                        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`);
+                        const weatherData = await weatherRes.json();
+                        if (weatherData && weatherData.current_weather) {
+                            const temp = weatherData.current_weather.temperature;
+                            const code = weatherData.current_weather.weathercode;
+                            let cond = "Clear";
+                            if (code >= 1 && code <= 3) cond = "Partly Cloudy";
+                            else if (code >= 45 && code <= 48) cond = "Foggy";
+                            else if (code >= 51 && code <= 67) cond = "Drizzle/Rain";
+                            else if (code >= 71 && code <= 77) cond = "Snowing";
+                            else if (code >= 80 && code <= 82) cond = "Showers";
+                            else if (code >= 95) cond = "Thunderstorm";
+                            weatherStr = `${temp}°C - ${cond}`;
+                        }
+                    }
+
+                    // Cache for future
+                    targetExtraCache[id] = { address: addressStr, weather: weatherStr };
+
+                    // Update saved item
+                    const currentList = getSavedListFromStorage();
+                    const recordIdx = currentList.findIndex(r => r.id === recordId);
+                    if (recordIdx !== -1) {
+                        currentList[recordIdx].address = addressStr;
+                        currentList[recordIdx].weather = weatherStr;
+                        saveListToStorage(currentList);
+                        renderSavedLocations();
+                    }
+                    showToast(`Snapshot for ${id} saved successfully!`, "success");
+                } catch (err) {
+                    console.error("Async geocode/weather save error", err);
+                    // Fallback to lat/lng
+                    const currentList = getSavedListFromStorage();
+                    const recordIdx = currentList.findIndex(r => r.id === recordId);
+                    if (recordIdx !== -1 && currentList[recordIdx].address === "Resolving position...") {
+                        currentList[recordIdx].address = `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        saveListToStorage(currentList);
+                        renderSavedLocations();
+                    }
+                }
+            } else {
+                showToast(`Snapshot for ${id} saved successfully!`, "success");
+            }
+        }
+
+        // Render saved location list
+        function renderSavedLocations() {
+            const listContainer = document.getElementById("saved-locations-list");
+            const emptyState = document.getElementById("saved-empty-state");
+            if (!listContainer) return;
+
+            const list = getSavedListFromStorage();
+
+            if (list.length === 0) {
+                listContainer.style.display = "none";
+                if (emptyState) emptyState.style.display = "block";
+                return;
+            }
+
+            if (emptyState) emptyState.style.display = "none";
+            listContainer.style.display = "flex";
+            listContainer.innerHTML = "";
+
+            list.forEach(item => {
+                const el = document.createElement("div");
+                el.className = "target-card p-4 mb-3 is-flex is-justify-content-between is-align-items-center scroll-reveal visible";
+                el.style.borderLeft = "3px solid #ffbc40";
+                
+                // Escape simple HTML values
+                const escAddress = (item.address || "").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const escWeather = (item.weather || "").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const escTargetId = (item.targetId || "").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+                el.innerHTML = `
+                    <div style="flex-grow: 1; padding-right: 15px; text-align: left;">
+                        <div class="is-flex is-align-items-center mb-1" style="flex-wrap: wrap; gap: 6px;">
+                            <span class="tag is-dark" style="background-color: #0d1117; border: 1px solid #30363d; color: #58a6ff; font-family: monospace;">
+                                Target: ${item.targetId}
+                            </span>
+                            <span class="is-size-7 has-text-grey">
+                                <i class="far fa-clock mr-1"></i> ${item.timestamp}
+                            </span>
+                        </div>
+                        <p class="is-size-7 has-text-grey-light">
+                            <span class="has-text-info">LAT:</span> <span class="has-text-white font-monospace mr-2">${item.lat.toFixed(6)}</span> 
+                            <span class="has-text-info">LNG:</span> <span class="has-text-white font-monospace">${item.lng.toFixed(6)}</span>
+                        </p>
+                        <p class="is-size-7 has-text-grey mt-1">
+                            <i class="fas fa-map-marker-alt mr-1 has-text-danger"></i> ${item.address || "Position Recorded"}
+                            ${item.weather ? ` | <span style="color: #ffbc40;"><i class="fas fa-cloud-sun mr-1"></i> ${item.weather}</span>` : ""}
+                        </p>
+                    </div>
+                    <div class="is-flex" style="gap: 8px; flex-shrink: 0;">
+                        <button onclick="locateSavedCoords(${item.lat}, ${item.lng}, '${escTargetId}', '${escAddress}', '${escWeather}')" class="button is-small is-success is-outlined" title="Locate static position on map">
+                            <span class="icon is-small"><i class="fas fa-search-location"></i></span>
+                            <span>View Map</span>
+                        </button>
+                        <button onclick="deleteSavedLocation('${item.id}')" class="button is-small is-danger is-outlined" title="Delete record">
+                            <span class="icon is-small"><i class="fas fa-times"></i></span>
+                        </button>
+                    </div>
+                `;
+                listContainer.appendChild(el);
+            });
+        }
+
+        // Locate static coordinates in Instant Finder Modal
+        function locateSavedCoords(lat, lng, targetId, address, weather) {
+            activeTrackId = null; // Disable active websocket overrides
+            finderTitleId.innerHTML = `${targetId} <span class="tag is-warning ml-2" style="font-size: 0.65rem;">Snapshot Archive</span>`;
+            
+            // Show Finder modal
+            if (finderModal) {
+                finderModal.classList.add("is-active");
+            }
+
+            const coords = [lat, lng];
+            finderLat.innerText = lat.toFixed(6);
+            finderLng.innerText = lng.toFixed(6);
+            
+            let displayHTML = `<strong>Saved Position Snapshot</strong><br><span style="color: #c9d1d9;">${address || 'No address logged'}</span>`;
+            if (weather) {
+                displayHTML += `<br><span style="color: #ffbc40; font-weight: 500;"><i class="fas fa-cloud-sun mr-1"></i> ${weather}</span>`;
+            }
+            finderAddrText.innerHTML = displayHTML;
+
+            // Initialize or relocate map
+            setTimeout(() => {
+                if (!finderMap) {
+                    finderMap = L.map('finder-map').setView(coords, 14);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                    }).addTo(finderMap);
+                    finderMarker = L.marker(coords).addTo(finderMap);
+                } else {
+                    finderMap.setView(coords, 14);
+                    finderMarker.setLatLng(coords);
+                }
+                finderMap.invalidateSize();
+            }, 100);
+        }
+
+        // Delete saved item
+        function deleteSavedLocation(id) {
+            let list = getSavedListFromStorage();
+            list = list.filter(item => item.id !== id);
+            saveListToStorage(list);
+            renderSavedLocations();
+            showToast("Saved telemetry position deleted.", "info");
+        }
+
+        // Clear all saved items
+        function clearSavedLocations() {
+            if (confirm("Are you sure you want to clear all saved locations from your archive?")) {
+                saveListToStorage([]);
+                renderSavedLocations();
+                showToast("All saved locations have been cleared.", "success");
+            }
+        }
+
+        // Export as CSV
+        function exportSavedCSV() {
+            const list = getSavedListFromStorage();
+            if (list.length === 0) {
+                showToast("No saved locations to export.", "warning");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "ID,Target ID,Timestamp,Latitude,Longitude,Address,Weather\n";
+
+            list.forEach(item => {
+                const addr = (item.address || "").replace(/"/g, '""');
+                const weather = (item.weather || "").replace(/'/g, "").replace(/"/g, '""');
+                csvContent += `"${item.id}","${item.targetId}","${item.timestamp}",${item.lat},${item.lng},"${addr}","${weather}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `telemetry_export_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("CSV Export downloaded successfully.", "success");
+        }
+
+        // Export as JSON
+        function exportSavedJSON() {
+            const list = getSavedListFromStorage();
+            if (list.length === 0) {
+                showToast("No saved locations to export.", "warning");
+                return;
+            }
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(list, null, 2));
+            const link = document.createElement("a");
+            link.setAttribute("href", dataStr);
+            link.setAttribute("download", `telemetry_export_${Date.now()}.json`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("JSON Export downloaded successfully.", "success");
         }
 
         // Finder Modal Close Handlers
@@ -811,6 +1204,18 @@
                     if (coords) {
                         finderMap.setView(coords, 14);
                     }
+                }
+            });
+        }
+
+        // Finder Save snapshot listener
+        const finderSaveBtn = document.getElementById("finder-save-btn");
+        if (finderSaveBtn) {
+            finderSaveBtn.addEventListener("click", () => {
+                if (activeTrackId) {
+                    saveLocationData(activeTrackId);
+                } else {
+                    showToast("Tracking snapshot mode does not support active saving.", "warning");
                 }
             });
         }
@@ -858,6 +1263,9 @@
 
         // Scroll Reveal Intersection Observer & Scroll Tracking Functions
         document.addEventListener("DOMContentLoaded", () => {
+            // Render any previously saved locations from localStorage
+            renderSavedLocations();
+
             const reveals = document.querySelectorAll(".scroll-reveal");
             const observerOptions = {
                 root: null,
@@ -916,6 +1324,9 @@
         });
     </script>
     
+    <!-- Toast Notification Container -->
+    <div id="toast-container" style="position: fixed; bottom: 24px; left: 24px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; pointer-events: none; max-width: 350px; width: 90%;"></div>
+
     <!-- Back to Top Floating Button -->
     <button id="back-to-top" class="button is-info" style="position: fixed; bottom: 24px; right: 24px; z-index: 99; border-radius: 50%; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid rgba(88, 166, 255, 0.4); opacity: 0; pointer-events: none; transform: translateY(15px); transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s; background-color: #161b22; color: #58a6ff;">
         <span class="icon"><i class="fas fa-arrow-up"></i></span>
