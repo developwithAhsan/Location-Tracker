@@ -135,6 +135,42 @@
             border-top: 1px solid var(--card-border);
             color: #8b949e !important;
         }
+
+        /* Scroll Reveal Animation Styles */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(35px);
+            transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: opacity, transform;
+        }
+
+        .scroll-reveal.reveal-left {
+            transform: translateX(-40px);
+        }
+
+        .scroll-reveal.reveal-right {
+            transform: translateX(40px);
+        }
+
+        .scroll-reveal.reveal-scale {
+            transform: scale(0.94) translateY(25px);
+        }
+
+        .scroll-reveal.visible {
+            opacity: 1;
+            transform: translate(0) scale(1);
+        }
+
+        /* Stagger delays for cascading elements */
+        .delay-100 { transition-delay: 100ms; }
+        .delay-200 { transition-delay: 200ms; }
+        .delay-300 { transition-delay: 300ms; }
+        .delay-400 { transition-delay: 400ms; }
+        .delay-500 { transition-delay: 500ms; }
     </style>
 </head>
 
@@ -174,14 +210,14 @@
         <div class="container">
             <div class="columns is-vcentered">
                 <div class="column is-7">
-                    <span class="tag is-info is-light mb-3">P2P Telemetry Enabled</span>
-                    <h1 class="title is-1 has-text-white mb-3">Real-time GPS Tracking Dashboard</h1>
-                    <p class="subtitle is-5 has-text-grey-light mb-5">
+                    <span class="tag is-info is-light mb-3 scroll-reveal">P2P Telemetry Enabled</span>
+                    <h1 class="title is-1 has-text-white mb-3 scroll-reveal delay-100">Real-time GPS Tracking Dashboard</h1>
+                    <p class="subtitle is-5 has-text-grey-light mb-5 scroll-reveal delay-200">
                         Establish immediate, secure geolocation relays and live local weather tracking over high-speed WebSocket networks.
                     </p>
                     
                     <!-- Copy Link Card -->
-                    <div class="premium-card p-4">
+                    <div class="premium-card p-4 scroll-reveal delay-300">
                         <p class="has-text-weight-semibold mb-2 is-size-6">Your Target Tracking Link:</p>
                         <div class="field has-addons">
                             <div class="control is-expanded">
@@ -204,7 +240,7 @@
                 
                 <!-- Quick Setup Step-by-Step -->
                 <div class="column is-5">
-                    <div class="premium-card p-5">
+                    <div class="premium-card p-5 scroll-reveal reveal-right delay-200">
                         <h3 class="title is-5 has-text-white mb-4">How to Setup Tracking</h3>
                         
                         <div class="media mb-4">
@@ -247,7 +283,7 @@
         <div class="container">
             <div class="columns is-centered">
                 <div class="column is-8">
-                    <div class="premium-card p-5">
+                    <div class="premium-card p-5 scroll-reveal reveal-scale">
                         <div class="is-flex is-justify-content-between is-align-items-center mb-5">
                             <div>
                                 <h2 class="title is-4 has-text-white mb-1">Active Tracker Sessions</h2>
@@ -289,7 +325,7 @@
                     </div>
 
                     <!-- Transparency & Geolocation Security Protocol Section -->
-                    <div class="premium-card p-5 mt-5">
+                    <div class="premium-card p-5 mt-5 scroll-reveal reveal-scale delay-100">
                         <div class="is-flex is-align-items-center mb-4">
                             <span class="icon mr-2 has-text-success"><i class="fas fa-shield-alt"></i></span>
                             <h3 class="title is-5 has-text-white mb-0" id="security-protocol-title">Privacy & Geolocation Security Protocol</h3>
@@ -327,7 +363,7 @@
     <footer class="footer py-6" style="background-color: rgba(13, 17, 23, 0.9) !important; border-top: 1px solid var(--card-border);">
         <div class="container">
             <div class="columns">
-                <div class="column is-6">
+                <div class="column is-6 scroll-reveal reveal-left">
                     <div class="is-flex is-align-items-center mb-3">
                         <span class="icon mr-2 has-text-info"><i class="fas fa-satellite-dish"></i></span>
                         <strong class="has-text-white" style="letter-spacing: 0.5px;">Live Location Tracker</strong>
@@ -337,7 +373,7 @@
                     </p>
                     <p class="is-size-7 has-text-grey">&copy; 2026 Live Location Tracker. Created by <a href="https://github.com/developwithAhsan" class="has-text-info" target="_blank" rel="noopener noreferrer">Ahsan</a>.</p>
                 </div>
-                <div class="column is-6">
+                <div class="column is-6 scroll-reveal reveal-right delay-100">
                     <h4 class="title is-6 has-text-white mb-3">Connect & Support</h4>
                     <div class="buttons">
                         <a href="https://github.com/developwithAhsan" target="_blank" rel="noopener noreferrer" class="button is-dark is-small" style="background-color: #21262d; border-color: #30363d; color: #c9d1d9;">
@@ -521,6 +557,27 @@
         if (closePrivacyBtn) closePrivacyBtn.addEventListener("click", toggleModal);
         if (closePrivacyBtnFooter) closePrivacyBtnFooter.addEventListener("click", toggleModal);
         if (modalBg) modalBg.addEventListener("click", toggleModal);
+
+        // Scroll Reveal Intersection Observer
+        document.addEventListener("DOMContentLoaded", () => {
+            const reveals = document.querySelectorAll(".scroll-reveal");
+            const observerOptions = {
+                root: null,
+                rootMargin: "0px 0px -8% 0px", // Triggers slightly before elements enter screen fully
+                threshold: 0.05
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add("visible");
+                        observer.unobserve(entry.target); // Reveal once
+                    }
+                });
+            }, observerOptions);
+
+            reveals.forEach(el => observer.observe(el));
+        });
     </script>
 </body>
 
