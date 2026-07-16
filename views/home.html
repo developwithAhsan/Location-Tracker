@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en" class="has-background-black-bis">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Location Tracker - Premium Real-Time Location Dashboard</title>
+    <meta name="description" content="Professional real-time GPS tracking and weather monitoring dashboard with secure WebSocket streaming.">
+    <link rel="icon" type="image/jpeg" href="/favicon.jpg">
+    
+    <!-- CSS & Font Libraries -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/1.0.2/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: transparent;
+            --card-bg: rgba(22, 27, 34, 0.75);
+            --card-border: rgba(33, 38, 45, 0.7);
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: transparent;
+            color: #c9d1d9;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #vanta-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+        }
+
+        .hero-banner {
+            background: radial-gradient(circle at top right, rgba(88, 166, 255, 0.15), transparent 60%);
+            border-bottom: 1px solid var(--card-border);
+            padding: 4rem 1.5rem;
+        }
+
+        .premium-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .premium-card:hover {
+            border-color: #30363d;
+        }
+
+        .target-card {
+            background-color: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .target-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .pulse-indicator {
+            width: 10px;
+            height: 10px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.7);
+            animation: pulse 1.6s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 8px rgba(63, 185, 80, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(63, 185, 80, 0);
+            }
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: #0d1117;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--card-border);
+            color: #58a6ff;
+        }
+
+        .step-icon {
+            background: rgba(88, 166, 255, 0.1);
+            color: var(--accent-blue);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .btn-copy {
+            background-color: #21262d;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-copy:hover {
+            background-color: #30363d;
+            color: #fff;
+        }
+
+        .footer {
+            background-color: #0d1117 !important;
+            border-top: 1px solid var(--card-border);
+            color: #8b949e !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="vanta-bg"></div>
+
+    <!-- Navbar / Header -->
+    <nav class="navbar is-dark p-3" style="background-color: rgba(22, 27, 34, 0.85); backdrop-filter: blur(8px); border-bottom: 1px solid var(--card-border); position: sticky; top: 0; z-index: 10;">
+        <div class="container">
+            <div class="navbar-brand" style="display: flex; width: 100%; justify-content: space-between; align-items: center;">
+                <span class="navbar-item">
+                    <span class="icon mr-2 has-text-info"><i class="fas fa-satellite-dish"></i></span>
+                    <strong class="has-text-white" style="letter-spacing: 0.5px;">Live Location Tracker</strong>
+                </span>
+                
+                <!-- Quick Access Developer Links -->
+                <div class="is-flex is-align-items-center" style="gap: 8px;">
+                    <a href="https://github.com/developwithAhsan" target="_blank" rel="noopener noreferrer" class="button is-dark is-outlined is-small" title="GitHub">
+                        <span class="icon"><i class="fab fa-github"></i></span>
+                        <span class="is-hidden-mobile">GitHub</span>
+                    </a>
+                    <a href="https://www.linkedin.com/in/devwithahsan/" target="_blank" rel="noopener noreferrer" class="button is-link is-outlined is-small" title="LinkedIn">
+                        <span class="icon"><i class="fab fa-linkedin"></i></span>
+                        <span class="is-hidden-mobile">LinkedIn</span>
+                    </a>
+                    <a href="https://discord.com/invite/RYYBGAwE?utm_source=Discord%20Widget&utm_medium=Connect" target="_blank" rel="noopener noreferrer" class="button is-info is-outlined is-small" style="border-color: #5865F2; color: #5865F2;" title="Discord">
+                        <span class="icon"><i class="fab fa-discord"></i></span>
+                        <span class="is-hidden-mobile">Discord</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Hero Banner -->
+    <section class="hero-banner">
+        <div class="container">
+            <div class="columns is-vcentered">
+                <div class="column is-7">
+                    <span class="tag is-info is-light mb-3">P2P Telemetry Enabled</span>
+                    <h1 class="title is-1 has-text-white mb-3">Real-time GPS Tracking Dashboard</h1>
+                    <p class="subtitle is-5 has-text-grey-light mb-5">
+                        Establish immediate, secure geolocation relays and live local weather tracking over high-speed WebSocket networks.
+                    </p>
+                    
+                    <!-- Copy Link Card -->
+                    <div class="premium-card p-4">
+                        <p class="has-text-weight-semibold mb-2 is-size-6">Your Target Tracking Link:</p>
+                        <div class="field has-addons">
+                            <div class="control is-expanded">
+                                <input class="input is-dark" id="target-url" type="text" value="{{ global.remoteURL }}/weather" readonly style="background-color: #0d1117; border-color: #30363d; color: #58a6ff;">
+                            </div>
+                            <div class="control">
+                                <button class="button btn-copy" id="copy-btn" onclick="copyTargetUrl()">
+                                    <span class="icon"><i class="far fa-copy"></i></span>
+                                    <span id="copy-text">Copy</span>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="is-size-7 has-text-grey mt-2">
+                            <i class="fas fa-info-circle mr-1"></i> Send this link to any target device. Once accepted, their location will appear below.
+                        </p>
+                    </div>
+
+
+                </div>
+                
+                <!-- Quick Setup Step-by-Step -->
+                <div class="column is-5">
+                    <div class="premium-card p-5">
+                        <h3 class="title is-5 has-text-white mb-4">How to Setup Tracking</h3>
+                        
+                        <div class="media mb-4">
+                            <div class="media-left">
+                                <span class="step-icon">1</span>
+                            </div>
+                            <div class="media-content">
+                                <p class="has-text-weight-semibold has-text-white">Copy Endpoint Link</p>
+                                <p class="is-size-7 has-text-grey-light">Use the generated tracker link above representing your current server instance.</p>
+                            </div>
+                        </div>
+
+                        <div class="media mb-4">
+                            <div class="media-left">
+                                <span class="step-icon">2</span>
+                            </div>
+                            <div class="media-content">
+                                <p class="has-text-weight-semibold has-text-white">Share with Device</p>
+                                <p class="is-size-7 has-text-grey-light">Send the link to the target smartphone, car console, or remote colleague.</p>
+                            </div>
+                        </div>
+
+                        <div class="media">
+                            <div class="media-left">
+                                <span class="step-icon">3</span>
+                            </div>
+                            <div class="media-content">
+                                <p class="has-text-weight-semibold has-text-white">Monitor Live Map</p>
+                                <p class="is-size-7 has-text-grey-light">Click on any incoming device ID below to load the live map and weather feed.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Connected Target Devices Dashboard -->
+    <section class="section is-flex-grow-1" style="background-color: transparent;">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-8">
+                    <div class="premium-card p-5">
+                        <div class="is-flex is-justify-content-between is-align-items-center mb-5">
+                            <div>
+                                <h2 class="title is-4 has-text-white mb-1">Active Tracker Sessions</h2>
+                                <p class="subtitle is-6 has-text-grey">Monitored targets active during the current runtime</p>
+                            </div>
+                            <span class="tag is-success is-light" id="active-count">0 Connected</span>
+                        </div>
+
+                        <!-- Target Stream Container -->
+                        <div id="tar-content" class="is-flex is-flex-direction-column">
+                            <!-- Loop over initially loaded targets -->
+                            {{ for(value, key in TARGETS) }}
+                            <div class="target-card p-4 mb-3 is-flex is-justify-content-between is-align-items-center" data-target-id="{{ key }}">
+                                <div class="is-flex is-align-items-center">
+                                    <span class="pulse-indicator mr-3"></span>
+                                    <div>
+                                        <p class="has-text-white has-text-weight-semibold">Target ID: <span class="has-text-info mono">{{ key }}</span></p>
+                                        <p class="has-text-grey is-size-7 mt-1">Actively broadcasting telemetry</p>
+                                    </div>
+                                </div>
+                                <a href="/map?id={{ key }}" class="button is-small is-link is-outlined">
+                                    <span class="icon is-small"><i class="fas fa-map-marked-alt"></i></span>
+                                    <span>Open Live Map</span>
+                                </a>
+                            </div>
+                            {{/}}
+                        </div>
+
+                        <!-- Empty State Box -->
+                        <div id="empty-state" class="has-text-centered py-6">
+                            <span class="icon is-large has-text-grey mb-3">
+                                <i class="fas fa-radar fa-3x animate-pulse" style="animation: pulse 2s infinite;"></i>
+                            </span>
+                            <p class="has-text-white has-text-weight-semibold">Listening for Live Signals...</p>
+                            <p class="has-text-grey is-size-7 mt-1 px-5">
+                                No devices are actively connected yet. Open the tracker link above on your phone or in another browser tab to test!
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Transparency & Geolocation Security Protocol Section -->
+                    <div class="premium-card p-5 mt-5">
+                        <div class="is-flex is-align-items-center mb-4">
+                            <span class="icon mr-2 has-text-success"><i class="fas fa-shield-alt"></i></span>
+                            <h3 class="title is-5 has-text-white mb-0" id="security-protocol-title">Privacy & Geolocation Security Protocol</h3>
+                        </div>
+                        <p class="is-size-6 has-text-grey-light mb-4">
+                            We prioritize the trust and physical security of target devices. This system utilizes secure, temporary transport layers designed specifically for sensitive geographic telemetry.
+                        </p>
+                        <div class="columns is-multiline mb-2">
+                            <div class="column is-6">
+                                <h4 class="title is-6 has-text-white mb-1"><i class="fas fa-eraser mr-2 has-text-info"></i>Zero Persistent Storage</h4>
+                                <p class="is-size-7 has-text-grey">
+                                    Telemetry coordinates are handled entirely in volatile memory and broadcasted live via secure WebSocket rooms. No history logs are written to database files.
+                                </p>
+                            </div>
+                            <div class="column is-6">
+                                <h4 class="title is-6 has-text-white mb-1"><i class="fas fa-lock mr-2 has-text-success"></i>Explicit Consent</h4>
+                                <p class="is-size-7 has-text-grey">
+                                    Device positioning broadcasts commence only when a target manually grants browser-level location access. Access is restricted exclusively to foreground tabs.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="has-text-centered pt-3 border-top" style="border-top: 1px solid var(--card-border);">
+                            <button class="button is-dark is-small" id="open-privacy-btn" style="border-color: #30363d;">
+                                <span class="icon"><i class="fas fa-info-circle"></i></span>
+                                <span>Detailed Data Processing Standards</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer py-6" style="background-color: rgba(13, 17, 23, 0.9) !important; border-top: 1px solid var(--card-border);">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-6">
+                    <div class="is-flex is-align-items-center mb-3">
+                        <span class="icon mr-2 has-text-info"><i class="fas fa-satellite-dish"></i></span>
+                        <strong class="has-text-white" style="letter-spacing: 0.5px;">Live Location Tracker</strong>
+                    </div>
+                    <p class="is-size-7 has-text-grey-light mb-4" style="max-width: 400px;">
+                        A professional real-time geolocation telemetry platform and live weather assistant powered by WebSockets, Leaflet, and Bulma CSS. Developed for high-precision P2P tracking.
+                    </p>
+                    <p class="is-size-7 has-text-grey">&copy; 2026 Live Location Tracker. Created by <a href="https://github.com/developwithAhsan" class="has-text-info" target="_blank" rel="noopener noreferrer">Ahsan</a>.</p>
+                </div>
+                <div class="column is-6">
+                    <h4 class="title is-6 has-text-white mb-3">Connect & Support</h4>
+                    <div class="buttons">
+                        <a href="https://github.com/developwithAhsan" target="_blank" rel="noopener noreferrer" class="button is-dark is-small" style="background-color: #21262d; border-color: #30363d; color: #c9d1d9;">
+                            <span class="icon"><i class="fab fa-github"></i></span>
+                            <span>GitHub</span>
+                        </a>
+                        <a href="https://www.linkedin.com/in/devwithahsan/" target="_blank" rel="noopener noreferrer" class="button is-small" style="background-color: #0077b5; border: none; color: white;">
+                            <span class="icon"><i class="fab fa-linkedin"></i></span>
+                            <span class="has-text-white">LinkedIn</span>
+                        </a>
+                        <a href="https://discord.com/invite/RYYBGAwE?utm_source=Discord%20Widget&utm_medium=Connect" target="_blank" rel="noopener noreferrer" class="button is-small" style="background-color: #5865F2; border: none; color: white;">
+                            <span class="icon"><i class="fab fa-discord"></i></span>
+                            <span class="has-text-white">Discord</span>
+                        </a>
+                    </div>
+                    <p class="is-size-7 has-text-grey mt-2">
+                        Feel free to star the repository, join the conversation on Discord, or connect on LinkedIn!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Geolocation Privacy & Consent Modal -->
+    <div id="privacy-modal" class="modal">
+        <div class="modal-background"></div>
+        <div class="modal-card" style="border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.6);">
+            <header class="modal-card-head" style="background-color: #161b22; border-bottom: 1px solid var(--card-border);">
+                <p class="modal-card-title has-text-white" style="font-size: 1.15rem; font-weight: 600;">
+                    <span class="icon mr-2 has-text-info"><i class="fas fa-user-shield"></i></span>
+                    Geolocation Privacy Standards
+                </p>
+                <button class="delete" aria-label="close" id="close-privacy-modal-btn"></button>
+            </header>
+            <section class="modal-card-body" style="background-color: #0d1117; color: #c9d1d9;">
+                <div class="content is-size-6">
+                    <h5 class="title is-6 has-text-white mb-2"><i class="fas fa-satellite mr-2 has-text-info"></i>1. Ephemeral Geolocation Streaming</h5>
+                    <p class="is-size-7 mb-4">
+                        All device coordinates (latitude, longitude, speed, and heading telemetry) are broadcast live to connected dashboards over a temporary, memory-only WebSocket room. At no point is this sensitive location data stored inside files, persistent databases, or backend logs.
+                    </p>
+
+                    <h5 class="title is-6 has-text-white mb-2"><i class="fas fa-key mr-2 has-text-success"></i>2. Peer-to-Peer Isolation</h5>
+                    <p class="is-size-7 mb-4">
+                        We generate dynamic ID identifiers for each target. Connections are routed through isolated rooms so that only the authorized user possessing your specific track URL can receive geographic packets.
+                    </p>
+
+                    <h5 class="title is-6 has-text-white mb-2"><i class="fas fa-user-check mr-2 has-text-warning"></i>3. Absolute User Consent</h5>
+                    <p class="is-size-7 mb-4">
+                        Telemetry broadcasting is 100% voluntary. The tracking system cannot bypass modern mobile or desktop browser permission prompts. Broadcasts only occur while the device has the page active and permission has been explicitly granted.
+                    </p>
+
+                    <h5 class="title is-6 has-text-white mb-2"><i class="fas fa-power-off mr-2 has-text-danger"></i>4. Instant Self-Deactivation</h5>
+                    <p class="is-size-7 mb-0">
+                        Closing the target tracker browser tab severs the connection immediately. All socket resources and memory variables relating to the stream are destroyed on the fly.
+                    </p>
+                </div>
+            </section>
+            <footer class="modal-card-foot" style="background-color: #161b22; border-top: 1px solid var(--card-border); display: flex; justify-content: flex-end; padding: 12px 20px;">
+                <button class="button is-link is-small" id="close-privacy-modal-btn-footer">Understood, Secure My Session</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Vanta.js & Three.js Animated Background -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.net.min.js"></script>
+    <script>
+        VANTA.NET({
+            el: "#vanta-bg",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            scale: 1.00,
+            scaleMobile: 1.00,
+            color: 0x412d2,
+            backgroundColor: 0x131325,
+            points: 20.00,
+            maxDistance: 29.00,
+            spacing: 20.00
+        });
+    </script>
+
+
+
+    <!-- WebSocket Telemetry Handler -->
+    <script src="https://cdn.jsdelivr.net/npm/socket.io@4.8.1/client-dist/socket.io.min.js"></script>
+    <script>
+        const content = document.querySelector("#tar-content");
+        const emptyState = document.querySelector("#empty-state");
+        const activeCount = document.querySelector("#active-count");
+
+        // Helper to update active targets count
+        function updateStats() {
+            const count = content.children.length;
+            activeCount.innerText = `${count} Active`;
+            if (count > 0) {
+                emptyState.style.display = "none";
+                activeCount.className = "tag is-success is-light";
+            } else {
+                emptyState.style.display = "block";
+                activeCount.className = "tag is-dark";
+            }
+        }
+
+        // Initialize Stats
+        updateStats();
+
+        // Socket.io initialization
+        const socket = io("", {
+            secure: true,
+            path: "/socket.io",
+            transports: ['websocket']
+        });
+
+        socket.on("user-connected", newId => {
+            // Check if target card already exists to avoid duplication
+            if (document.querySelector(`[data-target-id="${newId}"]`)) {
+                return;
+            }
+
+            const card = document.createElement('div');
+            card.className = "target-card p-4 mb-3 is-flex is-justify-content-between is-align-items-center";
+            card.setAttribute("data-target-id", newId);
+            card.innerHTML = `
+                <div class="is-flex is-align-items-center">
+                    <span class="pulse-indicator mr-3"></span>
+                    <div>
+                        <p class="has-text-white has-text-weight-semibold">Target ID: <span class="has-text-info mono">${newId}</span></p>
+                        <p class="has-text-grey is-size-7 mt-1">Actively broadcasting telemetry</p>
+                    </div>
+                </div>
+                <a href="/map?id=${newId}" class="button is-small is-link is-outlined">
+                    <span class="icon is-small"><i class="fas fa-map-marked-alt"></i></span>
+                    <span>Open Live Map</span>
+                </a>
+            `;
+            
+            content.appendChild(card);
+            updateStats();
+        });
+
+        // Copy Target link to clipboard function
+        function copyTargetUrl() {
+            const copyText = document.getElementById("target-url");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); // For mobile devices
+            navigator.clipboard.writeText(copyText.value).then(() => {
+                const btn = document.getElementById("copy-btn");
+                const textSpan = document.getElementById("copy-text");
+                
+                btn.style.backgroundColor = "var(--accent-green)";
+                btn.style.borderColor = "var(--accent-green)";
+                btn.style.color = "#fff";
+                textSpan.innerText = "Copied!";
+                
+                setTimeout(() => {
+                    btn.style.backgroundColor = "#21262d";
+                    btn.style.borderColor = "#30363d";
+                    btn.style.color = "#c9d1d9";
+                    textSpan.innerText = "Copy";
+                }, 2000);
+            });
+        }
+
+        // Privacy Modal Handlers
+        const privacyModal = document.getElementById("privacy-modal");
+        const openPrivacyBtn = document.getElementById("open-privacy-btn");
+        const closePrivacyBtn = document.getElementById("close-privacy-modal-btn");
+        const closePrivacyBtnFooter = document.getElementById("close-privacy-modal-btn-footer");
+        const modalBg = privacyModal ? privacyModal.querySelector(".modal-background") : null;
+
+        function toggleModal() {
+            if (privacyModal) {
+                privacyModal.classList.toggle("is-active");
+            }
+        }
+
+        if (openPrivacyBtn) openPrivacyBtn.addEventListener("click", toggleModal);
+        if (closePrivacyBtn) closePrivacyBtn.addEventListener("click", toggleModal);
+        if (closePrivacyBtnFooter) closePrivacyBtnFooter.addEventListener("click", toggleModal);
+        if (modalBg) modalBg.addEventListener("click", toggleModal);
+    </script>
+</body>
+
+</html>

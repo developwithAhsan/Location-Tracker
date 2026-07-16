@@ -1,0 +1,10 @@
+{
+  "name": "Live Location Tracker",
+  "description": "A live GPS location and tracker with real-time maps and weather updates using Socket.io.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
