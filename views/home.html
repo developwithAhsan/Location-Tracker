@@ -171,6 +171,65 @@
         .delay-300 { transition-delay: 300ms; }
         .delay-400 { transition-delay: 400ms; }
         .delay-500 { transition-delay: 500ms; }
+
+        /* Custom Cosmic CSS Animations */
+        @keyframes sat-float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-7px) rotate(1.5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+
+        .animated-satellite {
+            display: inline-block;
+            animation: sat-float 5s ease-in-out infinite;
+        }
+
+        @keyframes card-border-pulse {
+            0% { border-color: var(--card-border); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); }
+            50% { border-color: rgba(88, 166, 255, 0.45); box-shadow: 0 4px 25px rgba(88, 166, 255, 0.15); }
+            100% { border-color: var(--card-border); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); }
+        }
+
+        .animated-glow-card {
+            animation: card-border-pulse 8s ease-in-out infinite;
+        }
+
+        @keyframes radar-beacon-wave {
+            0% { transform: scale(1); opacity: 0.85; }
+            100% { transform: scale(2.8); opacity: 0; }
+        }
+
+        .radar-wave-active {
+            position: relative;
+        }
+
+        .radar-wave-active::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-blue);
+            animation: radar-beacon-wave 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes shimmery {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .text-shimmer {
+            background: linear-gradient(90deg, #c9d1d9, #ffffff, #58a6ff, #c9d1d9);
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: shimmery 6s linear infinite;
+        }
     </style>
 </head>
 
@@ -184,7 +243,7 @@
         <div class="container">
             <div class="navbar-brand" style="display: flex; width: 100%; justify-content: space-between; align-items: center;">
                 <span class="navbar-item">
-                    <span class="icon mr-2 has-text-info"><i class="fas fa-satellite-dish"></i></span>
+                    <span class="icon mr-2 has-text-info animated-satellite"><i class="fas fa-satellite-dish"></i></span>
                     <strong class="has-text-white" style="letter-spacing: 0.5px;">Live Location Tracker</strong>
                 </span>
                 
@@ -213,13 +272,13 @@
             <div class="columns is-vcentered">
                 <div class="column is-7">
                     <span class="tag is-info is-light mb-3 scroll-reveal">P2P Telemetry Enabled</span>
-                    <h1 class="title is-1 has-text-white mb-3 scroll-reveal delay-100">Real-time GPS Tracking Dashboard</h1>
+                    <h1 class="title is-1 has-text-white mb-3 scroll-reveal delay-100 text-shimmer">Real-time GPS Tracking Dashboard</h1>
                     <p class="subtitle is-5 has-text-grey-light mb-5 scroll-reveal delay-200">
                         Establish immediate, secure geolocation relays and live local weather tracking over high-speed WebSocket networks.
                     </p>
                     
                     <!-- Copy Link Card -->
-                    <div class="premium-card p-4 scroll-reveal delay-300">
+                    <div class="premium-card p-4 scroll-reveal delay-300 animated-glow-card">
                         <p class="has-text-weight-semibold mb-2 is-size-6">Your Target Tracking Link:</p>
                         <div class="field has-addons">
                             <div class="control is-expanded">
@@ -300,7 +359,9 @@
                             {{ for(value, key in TARGETS) }}
                             <div class="target-card p-4 mb-3 is-flex is-justify-content-between is-align-items-center" data-target-id="{{ key }}">
                                 <div class="is-flex is-align-items-center">
-                                    <span class="pulse-indicator mr-3"></span>
+                                    <div class="radar-wave-active mr-3" style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px;">
+                                        <span class="pulse-indicator" style="margin-right: 0;"></span>
+                                    </div>
                                     <div>
                                         <p class="has-text-white has-text-weight-semibold">Target ID: <span class="has-text-info mono">{{ key }}</span></p>
                                         <p class="has-text-grey is-size-7 mt-1">Actively broadcasting telemetry</p>
@@ -503,7 +564,9 @@
             card.setAttribute("data-target-id", newId);
             card.innerHTML = `
                 <div class="is-flex is-align-items-center">
-                    <span class="pulse-indicator mr-3"></span>
+                    <div class="radar-wave-active mr-3" style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px;">
+                        <span class="pulse-indicator" style="margin-right: 0;"></span>
+                    </div>
                     <div>
                         <p class="has-text-white has-text-weight-semibold">Target ID: <span class="has-text-info mono">${newId}</span></p>
                         <p class="has-text-grey is-size-7 mt-1">Actively broadcasting telemetry</p>

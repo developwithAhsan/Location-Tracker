@@ -32,6 +32,29 @@
             height: 100%;
             width: 100%;
         }
+
+        @keyframes signal-pulse-animation {
+            0% { opacity: 0.4; filter: drop-shadow(0 0 2px #58a6ff); }
+            50% { opacity: 1; filter: drop-shadow(0 0 10px #58a6ff); }
+            100% { opacity: 0.4; filter: drop-shadow(0 0 2px #58a6ff); }
+        }
+
+        .active-signal-glow {
+            animation: signal-pulse-animation 1.2s infinite ease-in-out;
+            color: #58a6ff !important;
+        }
+
+        @keyframes rotate-radar {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .radar-spinner {
+            animation: rotate-radar 2s linear infinite;
+            display: inline-block;
+            margin-right: 6px;
+            color: #58a6ff;
+        }
     </style>
 </head>
 
@@ -71,7 +94,7 @@
         // on update
         socket.on("map-data", data => {
             if (data.id == id) {
-                displayId.innerHTML = `${id} - updating`
+                displayId.innerHTML = `<span class="active-signal-glow"><span class="radar-spinner">📡</span> ${id} - receiving telemetry...</span>`
                 marker.setLatLng([data.lat, data.lng])
                 map.setView([data.lat, data.lng])
 
